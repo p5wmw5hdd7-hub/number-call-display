@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<title>注文リスト</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,"Yu Gothic UI",sans-serif;background:#101827;color:#f8fafc}
+*{box-sizing:border-box}body{margin:0;padding:clamp(12px,3vw,28px);min-height:100vh}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid #334155;padding-bottom:16px}
+h1{font-size:clamp(24px,4vw,38px);margin:0}.status{font-size:14px;color:#93c5fd}
+.note{color:#94a3b8;font-size:13px;margin:12px 0 18px}
+.tablewrap{overflow-x:auto;border:1px solid #334155;border-radius:14px}
+table{width:100%;border-collapse:collapse;min-width:620px;background:#172033}
+th,td{text-align:left;padding:14px 16px;border-bottom:1px solid #334155}
+th{background:#243247;color:#cbd5e1;font-size:14px}td{font-size:17px}tbody tr:last-child td{border-bottom:0}
+.num{font-size:24px;font-weight:850}.product{font-weight:650}.qty{text-align:center;font-size:22px;font-weight:800}
+.badge{display:inline-block;border-radius:999px;padding:5px 10px;font-size:13px;background:#334155;color:#e2e8f0}
+.badge.called{background:#14532d;color:#bbf7d0}.badge.wait{background:#713f12;color:#fde68a}
+.empty{padding:40px 16px;text-align:center;color:#94a3b8;font-size:18px}
+footer{margin-top:18px;color:#64748b;font-size:12px}
+@media(max-width:640px){body{padding:12px}th,td{padding:11px 12px}}
+</style>
+</head>
+<body>
+<header><h1>注文リスト</h1><div class="status" id="status">ntfy.shに接続中…</div></header>
+<div class="note" id="updated">注文情報を受信すると、ここに表示されます。</div>
+<div class="tablewrap"><table><thead><tr><th>番号</th><th>商品名</th><th>個数</th><th>呼出状態</th><th>注文時刻</th></tr></thead><tbody id="rows"><tr><td colspan="5" class="empty">注文情報を待っています</td></tr></tbody></table></div>
+<footer>注文リスト表示専用。操作・価格・売上履歴は表示しません。</footer>
+<script>
+/* Must match topic in the PC's ntfy-config.json */
+const TOPIC = "numcall-66abfc3b63208f53";
+const keys = ["A","B","C","D","E"];
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function timeText(v) {
+  if (!v) return "—";
+  const d = new Date(typeof v === "number" ? (v < 1e12 ? v*1000 : v) : v);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+}
+function render(s) {
+  const wait = Array.isArray(s.wait) ? s.wait.map(String) : [];
+  const cur = s.cur == null ? "" : String(s.cur);
+  const orders = s.orders || {}, menu = s.menu || {};
+  const nums = [...new Set([cur, ...wait].filter(Boolean))];
+  const rows = [];
+  for (const n of nums) {
+    const o = orders[n] || {};
+    const products = keys.filter(k => Number(o[k] || 0) > 0);
+    const isCalled = n === cur;
+    if (!products.length) {
+      rows.push(`<tr><td class="num">${esc(n)}</td><td class="product">商品未登録</td><td class="qty">—</td><td><span class="badge ${isCalled?'called':'wait'}">${isCalled?'呼出済み':'待機中'}</span></td><td>${esc(timeText(o.orderTime || o.order_time || o.createdAt || s.orderTime || s.ts))}</td></tr>`);
+    } else {
+      for (const k of products) {
+        rows.push(`<tr><td class="num">${esc(n)}</td><td class="product">${esc(menu[k] || k)}</td><td class="qty">${esc(o[k])}</td><td><span class="badge ${isCalled?'called':'wait'}">${isCalled?'呼出済み':'待機中'}</span></td><td>${esc(timeText(o.orderTime || o.order_time || o.createdAt || s.orderTime || s.ts))}</td></tr>`);
+      }
+    }
+  }
+  $("rows").innerHTML = rows.length ? rows.join("") : '<tr><td colspan="5" class="empty">現在、表示する注文はありません</td></tr>';
+  $("updated").textContent = "最終更新：" + timeText(s.ts || Date.now()/1000) + (s.fac ? "　|　" + s.fac : "");
+}
+const es = new EventSource("https://ntfy.sh/" + encodeURIComponent(TOPIC) + "/sse?since=latest");
+es.onopen = () => $("status").textContent = "● ntfy.sh接続中";
+es.onerror = () => $("status").textContent = "接続を再試行中…";
+es.onmessage = e => {
+  try {
+    const msg = JSON.parse(e.data);
+    if (msg.event !== "message" || !msg.message) return;
+    const s = JSON.parse(msg.message);
+    if (s.kind !== "numcall-display-v1") return;
+    render(s);
+  } catch (_) {}
+};
+</script>
+</body>
+</html>
