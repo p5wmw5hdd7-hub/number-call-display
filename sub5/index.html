@@ -1,0 +1,65 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101827"><title>サブ4｜履歴・売上</title><style>
+:root{color-scheme:dark;font-family:system-ui,"Yu Gothic UI",sans-serif;background:#101827;color:#f8fafc}*{box-sizing:border-box}body{margin:0;padding:clamp(14px,3vw,32px)}header{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}h1{font-size:clamp(24px,4vw,42px);margin:0}#status{color:#93c5fd;font-size:14px}h2{color:#cbd5e1;margin:28px 0 10px;font-size:clamp(18px,2.6vw,28px)}table{width:100%;border-collapse:collapse;background:#1e293b;border-radius:14px;overflow:hidden}th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #334155;font-size:clamp(14px,1.9vw,24px);vertical-align:top}th{background:#0f172a;color:#cbd5e1;font-size:13px}.r{text-align:right;font-variant-numeric:tabular-nums}tr.tot td{font-weight:900;background:#0f172a;color:#fde047}.big{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:16px}.k{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:14px}.k small{color:#94a3b8;display:block}.k b{font-size:clamp(26px,4vw,44px);color:#fde047;font-variant-numeric:tabular-nums}.note{color:#94a3b8;font-size:13px;margin-top:24px}.wrap{overflow-x:auto}.empty{color:#94a3b8;text-align:center;padding:24px}button{font:inherit;color:#fecaca;background:#3b1d24;border:1px solid #7f1d1d;border-radius:10px;padding:12px 18px;cursor:pointer;font-weight:700}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:9}.box{background:#1e293b;border:1px solid #475569;border-radius:16px;padding:20px;width:min(380px,92%);display:flex;flex-direction:column;gap:12px}.box input{padding:12px;font-size:20px;border-radius:8px;border:1px solid #475569;background:#0f172a;color:#fff}.box .row{display:flex;gap:10px}.box .row button{flex:1}.box .row .c{color:#e2e8f0;background:#334155;border-color:#475569}.err{color:#fca5a5;font-size:13px;min-height:18px}
+</style></head><body><header><h1>サブ4｜履歴・売上</h1><div id="status">ntfy.shに接続中…</div></header><div id="view"></div><div style="margin-top:28px"><button id="rst">データをリセット（パスワードが必要）</button></div><p class="note">呼出が確定した注文だけが記録されます。リセットを押さない限り、データは消えません。</p><script>
+const TOPIC='numcall-66abfc3b63208f53',LTOPIC=TOPIC+'-ledger',KEYS=['A','B','C','D','E'];
+const RESET_PW='123E'; /* ←リセット用パスワード。メイン画面側と同じ値にしてください */
+const LK='numcall.ledger.sub4',MK='numcall.sub4.menu';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const yen=n=>'¥'+Number(n||0).toLocaleString('ja-JP');
+let led={epoch:0,recs:[]},menu={};
+try{const l=JSON.parse(localStorage.getItem(LK));if(l&&l.recs)led=l}catch(e){}
+try{menu=JSON.parse(localStorage.getItem(MK))||{}}catch(e){}
+const save=()=>{try{localStorage.setItem(LK,JSON.stringify(led))}catch(e){}};
+function ledIn(m){
+  if(m.kind==='numcall-reset-v1'){if(m.epoch>led.epoch){led={epoch:m.epoch,recs:[]};save();return true}return false}
+  if(m.kind!=='numcall-sale-v1'&&m.kind!=='numcall-ledger-v1')return false;
+  if(m.epoch<led.epoch)return false;
+  let ch=false;if(m.epoch>led.epoch){led={epoch:m.epoch,recs:[]};ch=true}
+  (m.kind==='numcall-sale-v1'?[m.r]:(m.recs||[])).forEach(r=>{if(r&&r.i&&!led.recs.some(x=>x.i===r.i)){led.recs.push(r);ch=true}});
+  if(ch){led.recs.sort((a,b)=>a.t-b.t);save()}return ch;
+}
+const nm=k=>k+(menu[k]?' '+menu[k]:'');
+const tm=t=>{const d=new Date(t),z=x=>String(x).padStart(2,'0');return (d.getMonth()+1)+'/'+d.getDate()+' '+z(d.getHours())+':'+z(d.getMinutes())};
+function render(){
+  const c={},a={};KEYS.forEach(k=>{c[k]=0;a[k]=0});let all=0,n=0;
+  led.recs.forEach(r=>{n++;all+=r.a||0;KEYS.forEach(k=>{const q=Number(r.o&&r.o[k])||0;if(q){c[k]+=q;a[k]+=q*(Number(r.p&&r.p[k])||0)}})});
+  const qty=KEYS.reduce((s,k)=>s+c[k],0);
+  let out='<div class="big"><div class="k"><small>販売合計金額</small><b>'+yen(all)+'</b></div><div class="k"><small>販売合計個数</small><b>'+qty+' 個</b></div><div class="k"><small>呼出済み件数</small><b>'+n+' 件</b></div></div>';
+  out+='<h2>商品ごとの販売個数・販売金額</h2><div class="wrap"><table><tr><th>商品</th><th class="r">販売個数</th><th class="r">販売金額</th></tr>'+
+    KEYS.map(k=>'<tr><td>'+esc(nm(k))+'</td><td class="r">'+c[k]+' 個</td><td class="r">'+yen(a[k])+'</td></tr>').join('')+
+    '<tr class="tot"><td>合計</td><td class="r">'+qty+' 個</td><td class="r">'+yen(all)+'</td></tr></table></div>';
+  out+='<h2>番号の履歴（新しい順）</h2><div class="wrap"><table><tr><th>時刻</th><th>番号</th><th>選択内容・個数</th><th class="r">金額</th></tr>'+
+    (n?led.recs.slice().reverse().map(r=>{const it=KEYS.filter(k=>r.o&&r.o[k]).map(k=>esc(nm(k))+' ×'+r.o[k]).join('<br>')||'<span style="color:#94a3b8">（注文の選択なし）</span>';
+      return '<tr><td>'+tm(r.t)+'</td><td><b>'+esc(r.n)+'</b></td><td>'+it+'</td><td class="r">'+yen(r.a)+'</td></tr>'}).join(''):'<tr><td colspan="4" class="empty">まだ呼出済みの履歴がありません</td></tr>')+'</table></div>';
+  $('view').innerHTML=out;
+}
+function stream(url,f){
+  const es=new EventSource(url);
+  es.onopen=()=>$('status').textContent='● ntfy.sh接続中';es.onerror=()=>$('status').textContent='接続を再試行中…';
+  es.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.event==='message'&&m.message)f(JSON.parse(m.message))}catch(_){}};
+}
+/* 商品名はメインの表示データから取得 */
+stream('https://ntfy.sh/'+encodeURIComponent(TOPIC)+'/sse?since=latest',s=>{
+  if(s.kind!=='numcall-display-v1'||!s.menu)return;menu=s.menu;try{localStorage.setItem(MK,JSON.stringify(menu))}catch(e){}render();
+});
+let t=null;
+stream('https://ntfy.sh/'+encodeURIComponent(LTOPIC)+'/sse?since=all',m=>{if(ledIn(m)){clearTimeout(t);t=setTimeout(render,150)}});
+/* リセット（パスワード必須） */
+$('rst').onclick=()=>{
+  const o=document.createElement('div');o.className='ov';
+  o.innerHTML='<div class="box"><div>売上・履歴（'+led.recs.length+'件）を全て消去します。元に戻せません。パスワードを入力してください。</div><input type="password" id="pw" placeholder="パスワード" autocomplete="off"><div class="err" id="pe"></div><div class="row"><button class="c" id="no">キャンセル</button><button id="go">リセットする</button></div></div>';
+  document.body.appendChild(o);const pw=o.querySelector('#pw');pw.focus();
+  o.querySelector('#no').onclick=()=>o.remove();
+  const go=()=>{
+    if(pw.value!==RESET_PW){o.querySelector('#pe').textContent='パスワードが違います。';pw.value='';pw.focus();return}
+    const ep=led.epoch+1;
+    fetch('https://ntfy.sh/'+encodeURIComponent(LTOPIC),{method:'POST',headers:{'Content-Type':'text/plain; charset=utf-8'},body:JSON.stringify({kind:'numcall-reset-v1',epoch:ep})})
+      .then(r=>{if(!r.ok)throw 0;led={epoch:ep,recs:[]};save();o.remove();render()})
+      .catch(()=>{o.querySelector('#pe').textContent='送信できませんでした。通信を確認して、もう一度押してください。'});
+  };
+  o.querySelector('#go').onclick=go;pw.onkeydown=e=>{if(e.key==='Enter')go()};
+};
+render();
+</script></body></html>
