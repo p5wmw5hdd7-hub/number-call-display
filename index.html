@@ -1,77 +1,239 @@
-<!doctype html>
-<html lang="ja">
-<head>
+<!DOCTYPE html>
+<html lang="ja"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#101827">
-<title>注文リスト</title>
+<title>番号呼出システム｜メイン操作</title>
 <style>
-:root{color-scheme:dark;font-family:system-ui,-apple-system,"Yu Gothic UI",sans-serif;background:#101827;color:#f8fafc}
-*{box-sizing:border-box}body{margin:0;padding:clamp(12px,3vw,28px);min-height:100vh}
-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid #334155;padding-bottom:16px}
-h1{font-size:clamp(24px,4vw,38px);margin:0}.status{font-size:14px;color:#93c5fd}
-.note{color:#94a3b8;font-size:13px;margin:12px 0 18px}
-.tablewrap{overflow-x:auto;border:1px solid #334155;border-radius:14px}
-table{width:100%;border-collapse:collapse;min-width:620px;background:#172033}
-th,td{text-align:left;padding:14px 16px;border-bottom:1px solid #334155}
-th{background:#243247;color:#cbd5e1;font-size:14px}td{font-size:17px}tbody tr:last-child td{border-bottom:0}
-.num{font-size:24px;font-weight:850}.product{font-weight:650}.qty{text-align:center;font-size:22px;font-weight:800}
-.badge{display:inline-block;border-radius:999px;padding:5px 10px;font-size:13px;background:#334155;color:#e2e8f0}
-.badge.called{background:#14532d;color:#bbf7d0}.badge.wait{background:#713f12;color:#fde68a}
-.empty{padding:40px 16px;text-align:center;color:#94a3b8;font-size:18px}
-footer{margin-top:18px;color:#64748b;font-size:12px}
-@media(max-width:640px){body{padding:12px}th,td{padding:11px 12px}}
-</style>
-</head>
+:root{box-sizing:border-box;--bg:#f4f6f8;--card:#fff;--fg:#111827;--mute:#6b7280;--line:#d8dde3;--acc:#1d4ed8;--accfg:#fff;--key:#eef1f5;--warn:#b91c1c;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0f14;--card:#151b23;--fg:#f3f4f6;--mute:#9ca3af;--line:#2a323d;--acc:#3b82f6;--key:#1f2731}}
+:root[data-theme="dark"]{--bg:#0b0f14;--card:#151b23;--fg:#f3f4f6;--mute:#9ca3af;--line:#2a323d;--acc:#3b82f6;--key:#1f2731}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--fg);font-family:"Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
+#main{max-width:560px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:100%}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.top h1{font-size:18px;margin:0}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:10px 14px;font-size:14px;text-align:center;display:block;text-decoration:none;color:inherit}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;text-align:center}
+.lbl{font-size:13px;color:var(--mute)}
+.cur{font-size:64px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.inp{font-size:34px;font-weight:700;min-height:48px;font-variant-numeric:tabular-nums;letter-spacing:.05em;border-top:1px dashed var(--line);margin-top:10px;padding-top:10px}
+.inp span{color:var(--mute);font-size:14px;font-weight:400;margin-right:8px;letter-spacing:0}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pad button{height:72px;font-size:28px;font-weight:700;border-radius:14px;border:1px solid var(--line);background:var(--key)}
+.pad button:active{transform:scale(.97)}
+.pad .call{background:var(--acc);color:var(--accfg);border-color:var(--acc);font-size:20px}
+.pad .clr{color:var(--warn);font-size:22px}
+.row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.list{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:40px;align-items:center}
+.chip{display:inline-flex;border:1px solid var(--line);background:var(--key);border-radius:10px;overflow:hidden}
+.chip button{border:0;background:none;padding:8px 14px;font-size:22px;font-weight:700;line-height:1.1}
+.chip button small{display:block;font-size:11px;font-weight:400;color:var(--mute)}
+.chip button.x{padding:10px 12px;color:var(--warn);font-size:14px;border-left:1px solid var(--line)}
+.chip.w{border-color:var(--acc);border-width:2px}
+.it{border:1px solid var(--line);background:var(--key);border-radius:10px;padding:12px;font-size:17px;font-weight:700;text-align:left}
+.it.on{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+.q{display:flex;align-items:center;gap:6px}
+.q button{width:42px;height:42px;border-radius:10px;border:1px solid var(--line);background:var(--card);font-size:20px}
+.q b{min-width:28px;text-align:center;font-size:20px}
+#ordl{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-top:8px}
+.set{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mute);flex-wrap:wrap}
+.set input[type=text],.set input[type=password],.set input[type=number]{flex:1;min-width:110px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg);font:inherit}
+.err{font-size:12px;color:var(--mute);text-align:center}
+#login{display:flex;flex-direction:column;gap:10px;max-width:420px;margin:12vh auto 0;padding:16px;width:100%}
+#st{font-size:12px;color:var(--mute);text-align:center}#st.ok{color:#16a34a}#st.ng{color:var(--warn)}
+</style></head>
 <body>
-<header><h1>注文リスト</h1><div class="status" id="status">ntfy.shに接続中…</div></header>
-<div class="note" id="updated">注文情報を受信すると、ここに表示されます。</div>
-<div class="tablewrap"><table><thead><tr><th>番号</th><th>商品名</th><th>個数</th><th>呼出状態</th><th>注文時刻</th></tr></thead><tbody id="rows"><tr><td colspan="5" class="empty">注文情報を待っています</td></tr></tbody></table></div>
-<footer>注文リスト表示専用。操作・価格・売上履歴は表示しません。</footer>
+<div id="login" class="card" style="text-align:left">
+  <h1 style="margin:0;font-size:20px">番号呼出システム</h1>
+  <div class="lbl">管理パスワード（仮：123E）。公開ページ内の確認用で、安全な認証ではありません。</div>
+  <div class="set"><input type="password" id="pw" placeholder="パスワード" autocomplete="current-password"></div>
+  <button class="btn" id="lg" style="background:var(--acc);color:var(--accfg);font-weight:700">ログイン</button>
+  <div class="err" id="lgm"></div>
+</div>
+<div id="main" style="display:none">
+  <div class="top"><h1>番号呼出システム</h1><div style="display:flex;gap:6px"><a class="btn" href="../sub1/" target="_blank" rel="noopener">サブ1 ↗</a><a class="btn" href="../sub2/" target="_blank" rel="noopener">サブ2 ↗</a></div></div>
+  <div class="card">
+    <div class="lbl">現在の呼出番号（サブ1）</div>
+    <div class="cur" id="cur">---</div>
+    <div class="inp"><span>入力番号</span><b id="inp"></b></div>
+  </div>
+  <div id="st">配信先：ntfy.sh</div>
+  <div class="pad" id="pad"></div>
+  <div class="card" id="ord" style="display:none;text-align:left">
+    <div class="lbl">注文を選択（複数可・個数入力）</div>
+    <div id="ordl"></div>
+  </div>
+  <div class="card">
+    <div class="lbl" style="margin-bottom:8px">待機番号（タップで呼出 ／ ✕で取消）</div>
+    <div class="list" id="wait"></div>
+  </div>
+  <div class="row">
+    <button class="btn" id="bs">⌫ 1桁削除</button>
+    <button class="btn" id="direct">待機せず直接呼出</button>
+    <button class="btn" id="undo">前の番号に戻す</button>
+    <button class="btn" id="redo">再表示</button>
+  </div>
+  <button class="btn" id="clr" style="color:var(--warn);font-weight:700">表示を消す（サブ1を待機画面に戻す）</button>
+  <div class="card">
+    <div class="lbl" style="margin-bottom:8px">呼出済み（番号タップで再表示 ／ ✕で消去）</div>
+    <div class="list" id="hist"></div>
+  </div>
+  <div class="card" style="text-align:left">
+    <div class="lbl" style="margin-bottom:8px">表示画面を開く</div>
+    <div class="row">
+      <a class="btn" href="../sub1/" target="_blank" rel="noopener">サブ1 呼出番号</a>
+      <a class="btn" href="../sub2/" target="_blank" rel="noopener">サブ2 待ち番号</a>
+      <a class="btn" href="../" target="_blank" rel="noopener">サブ3 注文リスト</a>
+      <a class="btn" href="../sub4/" target="_blank" rel="noopener">サブ4 履歴・売上</a>
+    </div>
+  </div>
+  <div class="set"><label>施設名</label><input type="text" id="fac" placeholder="例：○○受付" maxlength="30"></div>
+  <div class="set" id="menuset"><label>メニュー名</label></div>
+  <div class="set" id="priceset"><label>価格(円)</label></div>
+  <div class="set">
+    <label><input type="checkbox" id="snd" checked> チャイム</label>
+    <label><input type="checkbox" id="dark"> ダーク</label>
+    <button class="btn" id="lo" style="margin-left:auto;padding:6px 12px">ログアウト</button>
+  </div>
+  <div class="err">Enter＝待機登録 ／ Backspace＝1桁削除 ／ Esc＝入力クリア。操作はすべて ntfy.sh 経由で4画面へ配信されます。価格は公開データに含めず、この端末にだけ保存します。</div>
+</div>
 <script>
-/* Must match topic in the PC's ntfy-config.json */
-const TOPIC = "numcall-66abfc3b63208f53";
-const keys = ["A","B","C","D","E"];
-const $ = id => document.getElementById(id);
-const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function timeText(v) {
-  if (!v) return "—";
-  const d = new Date(typeof v === "number" ? (v < 1e12 ? v*1000 : v) : v);
-  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+(function(){
+var TOPIC='numcall-66abfc3b63208f53',KEY='numcall.main.v1',KEYS=['A','B','C','D','E'];
+var $=function(i){return document.getElementById(i)};
+function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+var st={cur:'',hist:[],wait:[],orders:{},menu:{A:'焼きそば',B:'油そば',C:'ドリンク',D:'デザート',E:''},prices:{A:0,B:0,C:0,D:0,E:0},ts:0,rev:0,fac:'',snd:true};
+try{var ls=JSON.parse(localStorage.getItem(KEY));if(ls)st=Object.assign(st,ls)}catch(e){}
+function lab(k){return k+(st.menu[k]?' '+st.menu[k]:'')}
+function sum(o){return KEYS.filter(function(k){return o&&o[k]}).map(function(k){return k+'×'+o[k]}).join(' ')}
+function setSt(t,c){var e=$('st');e.textContent=t;e.className=c||''}
+
+/* ntfy.sh へ配信（サブ画面が読む numcall-display-v1 形式。価格・売上は送らない） */
+var busy=false,dirty=false;
+function pub(){
+  if(busy){dirty=true;return}
+  busy=true;dirty=false;
+  var wait=st.wait.slice(-20),hist=st.hist.slice(0,20),nums={};
+  wait.concat(st.cur?[st.cur]:[]).forEach(function(n){nums[n]=1});
+  var orders={};Object.keys(nums).forEach(function(n){var o=st.orders[n]||{};orders[n]={};KEYS.forEach(function(k){orders[n][k]=Number(o[k])||0})});
+  var menu={};KEYS.forEach(function(k){menu[k]=String(st.menu[k]||'').slice(0,80)});
+  var p={kind:'numcall-display-v1',cur:st.cur,wait:wait,hist:hist,orders:orders,menu:menu,fac:String(st.fac||'').slice(0,120),snd:st.snd!==false,ts:st.ts,rev:st.rev};
+  var body=JSON.stringify(p);
+  if(body.length>3900){p.wait=p.wait.slice(0,8);p.hist=p.hist.slice(0,8);Object.keys(p.orders).forEach(function(n){if(p.wait.indexOf(n)<0&&n!==p.cur)delete p.orders[n]});body=JSON.stringify(p)}
+  fetch('https://ntfy.sh/'+encodeURIComponent(TOPIC),{method:'POST',headers:{'Content-Type':'text/plain; charset=utf-8'},body:body})
+   .then(function(r){if(!r.ok)throw 0;setSt('● 配信OK '+new Date().toLocaleTimeString(),'ok')})
+   .catch(function(){setSt('✕ 配信失敗（通信を確認。次の操作で再送します）','ng')})
+   .then(function(){busy=false;if(dirty)pub()});
 }
-function render(s) {
-  const wait = Array.isArray(s.wait) ? s.wait.map(String) : [];
-  const cur = s.cur == null ? "" : String(s.cur);
-  const orders = s.orders || {}, menu = s.menu || {};
-  const nums = [...new Set([cur, ...wait].filter(Boolean))];
-  const rows = [];
-  for (const n of nums) {
-    const o = orders[n] || {};
-    const products = keys.filter(k => Number(o[k] || 0) > 0);
-    const isCalled = n === cur;
-    if (!products.length) {
-      rows.push(`<tr><td class="num">${esc(n)}</td><td class="product">商品未登録</td><td class="qty">—</td><td><span class="badge ${isCalled?'called':'wait'}">${isCalled?'呼出済み':'待機中'}</span></td><td>${esc(timeText(o.orderTime || o.order_time || o.createdAt || s.orderTime || s.ts))}</td></tr>`);
-    } else {
-      for (const k of products) {
-        rows.push(`<tr><td class="num">${esc(n)}</td><td class="product">${esc(menu[k] || k)}</td><td class="qty">${esc(o[k])}</td><td><span class="badge ${isCalled?'called':'wait'}">${isCalled?'呼出済み':'待機中'}</span></td><td>${esc(timeText(o.orderTime || o.order_time || o.createdAt || s.orderTime || s.ts))}</td></tr>`);
-      }
-    }
-  }
-  $("rows").innerHTML = rows.length ? rows.join("") : '<tr><td colspan="5" class="empty">現在、表示する注文はありません</td></tr>';
-  $("updated").textContent = "最終更新：" + timeText(s.ts || Date.now()/1000) + (s.fac ? "　|　" + s.fac : "");
+function send(){st.rev=Date.now();try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}pub()}
+
+/* 入力 */
+var buf='',sel={},pad=$('pad');
+['1','2','3','4','5','6','7','8','9','消去','0','待機登録'].forEach(function(k){
+  var b=el('button','',k);
+  if(k==='消去'){b.className='clr';b.onclick=function(){buf='';sel={};draw()}}
+  else if(k==='待機登録'){b.className='call';b.onclick=reg}
+  else b.onclick=function(){add(k)};
+  pad.appendChild(b);
+});
+function add(d){if(buf.length<4){buf+=d;draw()}}
+function setQ(k,v){v=Math.max(0,Math.min(99,v));if(v)sel[k]=v;else delete sel[k];drawOrd()}
+function drawOrd(){
+  $('ord').style.display=buf?'block':'none';
+  var box=$('ordl');box.innerHTML='';
+  KEYS.forEach(function(k){
+    var q=sel[k]||0;
+    var t=el('button','it'+(q?' on':''),lab(k));t.onclick=function(){setQ(k,q?0:1)};
+    var d=el('div','q');
+    var m=el('button','','−');m.onclick=function(){setQ(k,q-1)};
+    var p=el('button','','＋');p.onclick=function(){setQ(k,q+1)};
+    d.appendChild(m);d.appendChild(el('b','',q));d.appendChild(p);
+    box.appendChild(t);box.appendChild(d);
+  });
 }
-const es = new EventSource("https://ntfy.sh/" + encodeURIComponent(TOPIC) + "/sse?since=latest");
-es.onopen = () => $("status").textContent = "● ntfy.sh接続中";
-es.onerror = () => $("status").textContent = "接続を再試行中…";
-es.onmessage = e => {
-  try {
-    const msg = JSON.parse(e.data);
-    if (msg.event !== "message" || !msg.message) return;
-    const s = JSON.parse(msg.message);
-    if (s.kind !== "numcall-display-v1") return;
-    render(s);
-  } catch (_) {}
+function saveOrd(n){var o={};Object.keys(sel).forEach(function(k){o[k]=sel[k]});if(Object.keys(o).length)st.orders[n]=o;else delete st.orders[n]}
+function reg(){
+  if(!buf)return;var n=buf;saveOrd(n);buf='';sel={};
+  if(st.wait.indexOf(n)<0)st.wait.push(n);
+  send();draw();
+}
+function push(n){
+  st.wait=st.wait.filter(function(x){return x!==n});
+  st.cur=n;st.ts=Date.now();
+  st.hist=[n].concat(st.hist.filter(function(h){return h!==n})).slice(0,20);
+  send();draw();
+}
+function tidy(n){if(st.wait.indexOf(n)<0&&st.hist.indexOf(n)<0&&st.cur!==n)delete st.orders[n]}
+function delHist(n){
+  st.hist=st.hist.filter(function(x){return x!==n});
+  if(st.cur===n){st.cur='';st.ts=Date.now()}
+  tidy(n);send();draw();
+}
+function delWait(n){st.wait=st.wait.filter(function(x){return x!==n});tidy(n);send();draw()}
+function chip(n,onTap,onDel,cls){
+  var d=el('span','chip '+(cls||'')),b=el('button','',n);
+  var s=sum(st.orders[n]);if(s)b.appendChild(el('small','',s));
+  b.onclick=onTap;
+  var x=el('button','x','✕');x.onclick=onDel;d.appendChild(b);d.appendChild(x);return d;
+}
+function fillList(e,arr,mk,empty){
+  e.innerHTML='';
+  if(!arr.length){e.appendChild(el('span','lbl',empty));return}
+  arr.forEach(function(n){e.appendChild(mk(n))});
+}
+function draw(){
+  $('cur').textContent=st.cur||'---';
+  $('inp').textContent=buf;
+  drawOrd();
+  fillList($('wait'),st.wait,function(n){return chip(n,function(){push(n)},function(){delWait(n)},'w')},'待機中の番号はありません');
+  fillList($('hist'),st.hist,function(n){return chip(n,function(){push(n)},function(){delHist(n)})},'まだ履歴がありません');
+  if(document.activeElement!==$('fac'))$('fac').value=st.fac;
+  $('snd').checked=st.snd;
+}
+$('bs').onclick=function(){buf=buf.slice(0,-1);if(!buf)sel={};draw()};
+$('direct').onclick=function(){if(buf){var n=buf;saveOrd(n);buf='';sel={};push(n)}};
+$('clr').onclick=function(){st.cur='';st.ts=Date.now();send();draw()};
+$('redo').onclick=function(){
+  if(!st.cur&&st.hist.length)st.cur=st.hist[0];
+  if(st.cur){st.ts=Date.now();send();draw()}
 };
+$('undo').onclick=function(){
+  if(!st.cur&&st.hist.length){st.cur=st.hist[0];st.ts=Date.now();send();draw();return}
+  if(!st.hist.length)return;
+  var u=st.hist.shift();
+  if(u&&st.wait.indexOf(u)<0)st.wait.unshift(u);
+  st.cur=st.hist[0]||'';st.ts=Date.now();send();draw();
+};
+$('fac').oninput=function(){st.fac=this.value;send()};
+$('snd').onchange=function(){st.snd=this.checked;send()};
+$('dark').onchange=function(){document.documentElement.setAttribute('data-theme',this.checked?'dark':'light')};
+KEYS.forEach(function(k){
+  var i=el('input');i.type='text';i.value=st.menu[k]||'';i.placeholder=k;i.maxLength=12;i.style.maxWidth='90px';
+  i.oninput=function(){st.menu[k]=i.value;send();drawOrd()};
+  $('menuset').appendChild(el('span','',k));$('menuset').appendChild(i);
+  var p=el('input');p.type='number';p.min=0;p.value=st.prices[k]||0;p.style.maxWidth='80px';
+  p.oninput=function(){st.prices[k]=Math.max(0,Number(p.value)||0);try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}};
+  $('priceset').appendChild(el('span','',k));$('priceset').appendChild(p);
+});
+document.addEventListener('keydown',function(e){
+  if($('main').style.display==='none'||e.target.tagName==='INPUT')return;
+  if(/^[0-9]$/.test(e.key))add(e.key);
+  else if(e.key==='Enter')reg();
+  else if(e.key==='Backspace'){buf=buf.slice(0,-1);if(!buf)sel={};draw()}
+  else if(e.key==='Escape'){buf='';sel={};draw()}
+});
+
+/* 仮ログイン（確認用） */
+function enter(){$('login').style.display='none';$('main').style.display='flex';draw()}
+$('lg').onclick=function(){
+  if($('pw').value!=='123E'){$('lgm').textContent='パスワードが違います。';return}
+  try{sessionStorage.setItem('numcall_ok','1')}catch(e){}enter();
+};
+$('pw').addEventListener('keydown',function(e){if(e.key==='Enter')$('lg').click()});
+$('lo').onclick=function(){try{sessionStorage.removeItem('numcall_ok')}catch(e){}location.reload()};
+try{if(sessionStorage.getItem('numcall_ok')==='1')enter()}catch(e){}
+})();
 </script>
-</body>
-</html>
+</body></html>
